@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+
+# 桌面应用构建产物（120MB+，不用 git 存，改用 GitHub Releases）
+*.dmg
+Satzbau/dist/
+Satzbau/node_modules/
+
+# 无关素材目录（非本项目）
+awesome-design-md-main/
+Impeccable/
+taste-skill-main/
+.claude/

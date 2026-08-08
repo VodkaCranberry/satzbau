@@ -1,0 +1,48 @@
+{
+  "name": "satzbau",
+  "productName": "Satzbau",
+  "version": "1.2.0",
+  "description": "Satzbau · 德语造句练习 — AI 德语造句练习 macOS 桌面应用",
+  "main": "main.js",
+  "author": "Satzbau",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --mac dir",
+    "dist": "electron-builder --mac dmg"
+  },
+  "build": {
+    "appId": "com.satzbau.app",
+    "productName": "Satzbau",
+    "artifactName": "Satzbau-${version}-${arch}.${ext}",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*"
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.education",
+      "icon": "build/icon.icns",
+      "identity": null,
+      "extendInfo": {
+        "NSHumanReadableCopyright": "Satzbau · 德语造句练习",
+        "NSHighResolutionCapable": true
+      }
+    }
+  },
+  "devDependencies": {
+    "electron": "^43.3.0",
+    "electron-builder": "^26.15.3"
+  }
+}
