@@ -2,7 +2,9 @@
 
 一个基于 AI 的德语「中译德」造句练习应用。根据难度等级或你上传的词表生成中文句子，你用键盘打出对应的德语句子，AI 逐词批改并给出参考译文。
 
-> **macOS 桌面版**：`Satzbau-1.2.0-arm64.dmg`（本文件夹内）——Electron 原生应用，带独立文件存储（`~/Library/Application Support/Satzbau/`）与前后端架构，功能与本网页版完全一致。双击 DMG 拖入 Applications 即可安装。
+> **在线版（GitHub Pages）**：<https://vodkacranberry.github.io/satzbau/> — 手机/任意设备打开即用，无需安装。练习记录通过 LeanCloud 云同步互通。
+>
+> **macOS 桌面版**：`Satzbau-1.2.0-arm64.dmg`（本文件夹内，也可从 GitHub Releases 下载）——Electron 原生应用，带独立文件存储（`~/Library/Application Support/Satzbau/`）与前后端架构，功能与本网页版完全一致。双击 DMG 拖入 Applications 即可安装。
 
 ## 使用方法
 
