@@ -39,14 +39,6 @@ python3 -m http.server 8765
 - **云同步 (LeanCloud)**：网页版与桌面版（乃至换电脑）通过同一 LeanCloud 账号互通练习记录/生词本/收藏/词表。写入后防抖 3 秒自动上传，启动时静默拉取；两端同时离线改动时自动合并（历史/生词/收藏按词条去重），设置页可手动立即同步。仅同步学习数据，API Key 与云同步凭证不会上传
 - **其他**：深浅色主题切换（跟随系统）、Ctrl/⌘+Enter 提交、N 换题、H 提示
 
-## AI 配置
-
-默认已内置 DeepSeek API Key，可在右上角「设置」中修改：
-
-- API Key（默认 `sk-e2e0f8a975ef4af6b9eb27e85323590a`）
-- 模型：`deepseek-chat`（推荐）/ `deepseek-reasoner`
-- 出题随机性、最大 Token 数、TTS 语速与语音
-
 ## 云同步设置（LeanCloud 国际版）
 
 1. 到 [console.leancloud.app](https://console.leancloud.app) 注册（邮箱即可），创建应用
