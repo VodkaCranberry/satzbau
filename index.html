@@ -1092,8 +1092,9 @@ select.form-control { appearance: none; background-image: linear-gradient(45deg,
       <div class="form-group">
         <label class="form-label" for="setModel">模型</label>
         <select id="setModel" class="form-control">
-          <option value="deepseek-chat">deepseek-chat（通用，推荐）</option>
-          <option value="deepseek-reasoner">deepseek-reasoner（深度推理，较慢）</option>
+          <option value="deepseek-chat">deepseek-chat（V3 通用）</option>
+          <option value="deepseek-v4-flash">deepseek-v4-flash（V4 快速）</option>
+          <option value="deepseek-reasoner">deepseek-reasoner（R1 深度推理）</option>
           <option value="kimi">Kimi（Moonshot）</option>
           <option value="volcengine">火山引擎 Ark（GLM）</option>
           <option value="minimax">MiniMax（M3/M2.7）</option>
@@ -1554,14 +1555,15 @@ if ("speechSynthesis" in window) { window.speechSynthesis.onvoiceschanged = popu
 
 /* ---------- 模型配置 ---------- */
 const MODEL_PRESETS = {
-  "deepseek-chat":     { base: "https://api.deepseek.com", name: "deepseek-chat" },
-  "deepseek-reasoner": { base: "https://api.deepseek.com", name: "deepseek-reasoner" },
-  "kimi":              { base: "https://api.moonshot.cn/v1", name: "moonshot-v1-32k" },
-  "volcengine":        { base: "https://ark.cn-beijing.volces.com/api/v3", name: "doubao-1-5-pro-32k-250115" },
-  "minimax":           { base: "https://api.minimax.cn/v1", name: "MiniMax-M3" },
-  "hunyuan":           { base: "https://api.hunyuan.cloud.tencent.com/v1", name: "" },
-  "MiMo":              { base: "", name: "" },
-  "custom":            { base: "", name: "" },
+  "deepseek-chat":       { base: "https://api.deepseek.com", name: "deepseek-chat" },
+  "deepseek-v4-flash":   { base: "https://api.deepseek.com", name: "deepseek-v4-flash" },
+  "deepseek-reasoner":   { base: "https://api.deepseek.com", name: "deepseek-reasoner" },
+  "kimi":                { base: "https://api.moonshot.cn/v1", name: "moonshot-v1-32k" },
+  "volcengine":          { base: "https://ark.cn-beijing.volces.com/api/v3", name: "doubao-1-5-pro-32k-250115" },
+  "minimax":             { base: "https://api.minimax.cn/v1", name: "MiniMax-M3" },
+  "hunyuan":             { base: "https://api.hunyuan.cloud.tencent.com/v1", name: "" },
+  "MiMo":                { base: "", name: "" },
+  "custom":              { base: "", name: "" },
 };
 function getModelConfig() {
   const s = state.settings;
@@ -1603,7 +1605,7 @@ async function callDeepSeek({ system, user, json = true, temperature, _retry = 0
   }
   const base = cfg.base || "https://api.deepseek.com";
   const endpoint = base + "/chat/completions";
-  const isDeepSeek = (s.model === "deepseek-chat" || s.model === "deepseek-reasoner");
+  const isDeepSeek = (s.model === "deepseek-chat" || s.model === "deepseek-reasoner" || s.model === "deepseek-v4-flash");
   const isFileProtocol = (location.protocol === "file:");
 
   const controller = new AbortController();
