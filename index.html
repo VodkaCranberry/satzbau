@@ -1095,6 +1095,7 @@ select.form-control { appearance: none; background-image: linear-gradient(45deg,
           <option value="deepseek-chat">deepseek-chat（通用，推荐）</option>
           <option value="deepseek-reasoner">deepseek-reasoner（深度推理，较慢）</option>
           <option value="kimi">Kimi（Moonshot）</option>
+          <option value="volcengine">火山引擎 Ark（GLM）</option>
           <option value="hunyuan">腾讯混元 Hunyuan</option>
           <option value="MiMo">小米 MiMo</option>
           <option value="custom">自定义模型（OpenAI 兼容）</option>
@@ -1555,6 +1556,7 @@ const MODEL_PRESETS = {
   "deepseek-chat":     { base: "https://api.deepseek.com", name: "deepseek-chat" },
   "deepseek-reasoner": { base: "https://api.deepseek.com", name: "deepseek-reasoner" },
   "kimi":              { base: "https://api.moonshot.cn/v1", name: "moonshot-v1-32k" },
+  "volcengine":        { base: "https://ark.cn-beijing.volces.com/api/v3", name: "doubao-1-5-pro-32k-250115" },
   "hunyuan":           { base: "https://api.hunyuan.cloud.tencent.com/v1", name: "" },
   "MiMo":              { base: "", name: "" },
   "custom":            { base: "", name: "" },
@@ -1566,14 +1568,14 @@ function getModelConfig() {
   if (key === "deepseek-chat" || key === "deepseek-reasoner") {
     return { base: preset.base, name: preset.name };
   }
-  let base = (key === "hunyuan" || key === "kimi")
+  let base = (key === "hunyuan" || key === "kimi" || key === "volcengine")
     ? (s.apiBase || preset.base)
     : (s.apiBase || "");
   // 清理：去尾部斜杠、去掉 /chat/completions 后缀
   base = base.replace(/\/+$/, "").replace(/\/chat\/completions$/i, "");
-  // 确保以 /v1 结尾（OpenAI 兼容格式要求）
-  if (base && !base.endsWith("/v1")) base = base + "/v1";
-  const name = s.customModel || (key === "hunyuan" ? "hunyuan-turbos-latest" : key === "kimi" ? "moonshot-v1-32k" : key);
+  // 火山引擎 base URL 已含 /api/v3，不追加 /v1；其他 OpenAI 兼容接口确保 /v1 后缀
+  if (base && !base.endsWith("/v1") && !base.includes("/api/v3")) base = base + "/v1";
+  const name = s.customModel || (key === "hunyuan" ? "hunyuan-turbos-latest" : key === "kimi" ? "moonshot-v1-32k" : key === "volcengine" ? "doubao-1-5-pro-32k-250115" : key);
   return { base, name };
 }
 
@@ -2997,12 +2999,12 @@ function renderSettingsForm() {
   $("#setApiKey").value = state.settings.apiKey || "";
   const modelVal = state.settings.model || "deepseek-chat";
   $("#setModel").value = MODEL_PRESETS[modelVal] ? modelVal : "custom";
-  const needCustom = (modelVal === "kimi" || modelVal === "hunyuan" || modelVal === "MiMo" || modelVal === "custom");
+  const needCustom = (modelVal === "kimi" || modelVal === "volcengine" || modelVal === "hunyuan" || modelVal === "MiMo" || modelVal === "custom");
   $("#customModelFields").classList.toggle("hidden", !needCustom);
   // 为已知预设显示默认值（让用户看到并可修改）
   const preset = MODEL_PRESETS[modelVal];
   const defaultBase = (preset && preset.base) ? preset.base : "";
-  const defaultName = (preset && preset.name) ? preset.name : (modelVal === "hunyuan" ? "hunyuan-turbos-latest" : modelVal === "kimi" ? "moonshot-v1-32k" : "");
+  const defaultName = (preset && preset.name) ? preset.name : (modelVal === "hunyuan" ? "hunyuan-turbos-latest" : modelVal === "kimi" ? "moonshot-v1-32k" : modelVal === "volcengine" ? "doubao-1-5-pro-32k-250115" : "");
   $("#setApiBase").value = state.settings.apiBase || defaultBase;
   $("#setCustomModel").value = state.settings.customModel || defaultName;
   $("#setTemp").value = state.settings.temperature;
@@ -3314,7 +3316,7 @@ function init() {
   $("#setModel").onchange = (e) => {
     state.settings.model = e.target.value;
     const key = e.target.value;
-    const needCustom = (key === "kimi" || key === "hunyuan" || key === "MiMo" || key === "custom");
+    const needCustom = (key === "kimi" || key === "volcengine" || key === "hunyuan" || key === "MiMo" || key === "custom");
     $("#customModelFields").classList.toggle("hidden", !needCustom);
     // file:// 协议下选择非 DeepSeek 模型时提示
     if (location.protocol === "file:" && key !== "deepseek-chat" && key !== "deepseek-reasoner") {
@@ -3324,6 +3326,9 @@ function init() {
     if (key === "kimi") {
       if (!state.settings.apiBase) { state.settings.apiBase = "https://api.moonshot.cn/v1"; $("#setApiBase").value = state.settings.apiBase; }
       if (!state.settings.customModel) { state.settings.customModel = "moonshot-v1-32k"; $("#setCustomModel").value = state.settings.customModel; }
+    } else if (key === "volcengine") {
+      if (!state.settings.apiBase) { state.settings.apiBase = "https://ark.cn-beijing.volces.com/api/v3"; $("#setApiBase").value = state.settings.apiBase; }
+      if (!state.settings.customModel) { state.settings.customModel = "doubao-1-5-pro-32k-250115"; $("#setCustomModel").value = state.settings.customModel; }
     } else if (key === "hunyuan") {
       if (!state.settings.apiBase) { state.settings.apiBase = "https://api.hunyuan.cloud.tencent.com/v1"; $("#setApiBase").value = state.settings.apiBase; }
       if (!state.settings.customModel) { state.settings.customModel = "hunyuan-turbos-latest"; $("#setCustomModel").value = state.settings.customModel; }
