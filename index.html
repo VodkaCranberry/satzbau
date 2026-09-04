@@ -1092,8 +1092,7 @@ select.form-control { appearance: none; background-image: linear-gradient(45deg,
       <div class="form-group">
         <label class="form-label" for="setModel">模型</label>
         <select id="setModel" class="form-control">
-          <option value="deepseek-v4-flash">DeepSeek V4 Flash（快速便宜，推荐）</option>
-          <option value="deepseek-v3">DeepSeek V3（通用）</option>
+          <option value="deepseek-chat">DeepSeek Chat（V3 通用，推荐）</option>
           <option value="deepseek-reasoner">DeepSeek R1（深度推理，较慢）</option>
           <option value="kimi">Kimi（Moonshot）</option>
           <option value="volcengine">火山引擎 Ark（GLM）</option>
@@ -1426,7 +1425,7 @@ function loadSettings() {
     const s = raw ? JSON.parse(raw) : {};
     return Object.assign({
       apiKey: "sk-e2e0f8a975ef4af6b9eb27e85323590a",
-      model: "deepseek-v4-flash",
+      model: "deepseek-chat",
       apiBase: "",
       customModel: "",
       temperature: 0.8,
@@ -1438,7 +1437,7 @@ function loadSettings() {
       grammarTopics: [],
       searchDir: "de2zh",
     }, s);
-  } catch (e) { return { apiKey: "", model: "deepseek-v4-flash", apiBase: "", customModel: "", temperature: 0.8, maxTokens: 1600, ttsRate: 0.9, ttsVoice: "", theme: "light", mode: "standard", grammarTopics: [] }; }
+  } catch (e) { return { apiKey: "", model: "deepseek-chat", apiBase: "", customModel: "", temperature: 0.8, maxTokens: 1600, ttsRate: 0.9, ttsVoice: "", theme: "light", mode: "standard", grammarTopics: [] }; }
 }
 function saveSettings() {
   state.settings.grammarTopics = state.selectedTopics.slice();
@@ -1555,8 +1554,7 @@ if ("speechSynthesis" in window) { window.speechSynthesis.onvoiceschanged = popu
 
 /* ---------- 模型配置 ---------- */
 const MODEL_PRESETS = {
-  "deepseek-v3":         { base: "https://api.deepseek.com", name: "deepseek-v3" },
-  "deepseek-v4-flash":   { base: "https://api.deepseek.com", name: "deepseek-v4-flash" },
+  "deepseek-chat":       { base: "https://api.deepseek.com", name: "deepseek-chat" },
   "deepseek-reasoner":   { base: "https://api.deepseek.com", name: "deepseek-reasoner" },
   "kimi":                { base: "https://api.moonshot.cn/v1", name: "moonshot-v1-32k" },
   "volcengine":          { base: "https://ark.cn-beijing.volces.com/api/v3", name: "doubao-1-5-pro-32k-250115" },
@@ -1567,9 +1565,9 @@ const MODEL_PRESETS = {
 };
 function getModelConfig() {
   const s = state.settings;
-  const key = s.model || "deepseek-v4-flash";
+  const key = s.model || "deepseek-chat";
   const preset = MODEL_PRESETS[key];
-  if (key === "deepseek-v3" || key === "deepseek-v4-flash" || key === "deepseek-reasoner") {
+  if (key === "deepseek-chat" || key === "deepseek-chat" || key === "deepseek-reasoner") {
     return { base: preset.base, name: preset.name };
   }
   let base = (key === "hunyuan" || key === "kimi" || key === "volcengine" || key === "minimax")
@@ -1592,7 +1590,7 @@ async function callDeepSeek({ system, user, json = true, temperature, _retry = 0
   if (window.__satzbau && window.__satzbau.ai) {
     const r = await window.__satzbau.ai.call({
       apiKey: s.apiKey,
-      model: cfg.name || "deepseek-v4-flash",
+      model: cfg.name || "deepseek-chat",
       apiBase: cfg.base || undefined,
       temperature: temperature != null ? temperature : (s.temperature != null ? s.temperature : 0.8),
       maxTokens: s.maxTokens || 1600,
@@ -1605,7 +1603,7 @@ async function callDeepSeek({ system, user, json = true, temperature, _retry = 0
   }
   const base = cfg.base || "https://api.deepseek.com";
   const endpoint = base + "/chat/completions";
-  const isDeepSeek = (s.model === "deepseek-v3" || s.model === "deepseek-v4-flash" || s.model === "deepseek-reasoner");
+  const isDeepSeek = (s.model === "deepseek-chat" || s.model === "deepseek-chat" || s.model === "deepseek-reasoner");
   const isFileProtocol = (location.protocol === "file:");
 
   const controller = new AbortController();
@@ -1613,7 +1611,7 @@ async function callDeepSeek({ system, user, json = true, temperature, _retry = 0
   try {
     const isKimi = (s.model === "kimi");
     const body = {
-      model: cfg.name || "deepseek-v4-flash",
+      model: cfg.name || "deepseek-chat",
       max_tokens: isKimi ? Math.max(s.maxTokens || 1600, 4096) : (s.maxTokens || 1600),
       messages: [
         { role: "system", content: system },
@@ -3001,7 +2999,7 @@ function switchMode(mode) {
 /* ---------- 设置 ---------- */
 function renderSettingsForm() {
   $("#setApiKey").value = state.settings.apiKey || "";
-  const modelVal = state.settings.model || "deepseek-v4-flash";
+  const modelVal = state.settings.model || "deepseek-chat";
   $("#setModel").value = MODEL_PRESETS[modelVal] ? modelVal : "custom";
   const needCustom = (modelVal === "kimi" || modelVal === "volcengine" || modelVal === "minimax" || modelVal === "hunyuan" || modelVal === "MiMo" || modelVal === "custom");
   $("#customModelFields").classList.toggle("hidden", !needCustom);
@@ -3323,7 +3321,7 @@ function init() {
     const needCustom = (key === "kimi" || key === "volcengine" || key === "minimax" || key === "hunyuan" || key === "MiMo" || key === "custom");
     $("#customModelFields").classList.toggle("hidden", !needCustom);
     // file:// 协议下选择非 DeepSeek 模型时提示
-    if (location.protocol === "file:" && key !== "deepseek-v3" && key !== "deepseek-v4-flash" && key !== "deepseek-reasoner") {
+    if (location.protocol === "file:" && key !== "deepseek-chat" && key !== "deepseek-chat" && key !== "deepseek-reasoner") {
       toast("提示：本地文件使用非 DeepSeek 模型可能遇到跨域问题。建议双击 start-server.command 启动本地服务器，或直接在终端运行 python3 -m http.server 8080", "info", 8000);
     }
     // 设置默认值
