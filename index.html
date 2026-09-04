@@ -1608,7 +1608,7 @@ async function callDeepSeek({ system, user, json = true, temperature, _retry = 0
     const isKimi = (s.model === "kimi");
     const body = {
       model: cfg.name || "deepseek-chat",
-      max_tokens: s.maxTokens || 1600,
+      max_tokens: isKimi ? Math.max(s.maxTokens || 1600, 4096) : (s.maxTokens || 1600),
       messages: [
         { role: "system", content: system },
         { role: "user", content: user }
@@ -1702,6 +1702,24 @@ async function callDeepSeek({ system, user, json = true, temperature, _retry = 0
     throw e;
   } finally { clearTimeout(timer); }
 }
+/* 修复被截断的 JSON（max_tokens 不够时常见） */
+function repairTruncatedJson(str) {
+  let s = str;
+  // 1. 如果字符串值没关闭（奇数个非转义引号），补上引号
+  const quoteCount = (s.match(/(?<!\\)"/g) || []).length;
+  if (quoteCount % 2 !== 0) s += '"';
+  // 2. 去掉末尾可能残留的逗号
+  s = s.replace(/,\s*$/, "");
+  // 3. 补全缺失的 ] 和 }
+  const openBrackets = (s.match(/\[/g) || []).length;
+  const closeBrackets = (s.match(/\]/g) || []).length;
+  if (openBrackets > closeBrackets) s += "]".repeat(openBrackets - closeBrackets);
+  const openBraces = (s.match(/\{/g) || []).length;
+  const closeBraces = (s.match(/\}/g) || []).length;
+  if (openBraces > closeBraces) s += "}".repeat(openBraces - closeBraces);
+  return s;
+}
+
 function extractJson(text) {
   if (!text || !text.trim()) throw new Error("AI 返回为空，请重试一次");
   let t = text.trim();
@@ -1711,35 +1729,34 @@ function extractJson(text) {
   // 策略 1：直接解析
   try { return JSON.parse(t); } catch (e) {}
 
-  // 策略 2：找最后一个完整的 JSON 对象（有些模型先输出思考过程再输出 JSON）
-  const allMatches = [...t.matchAll(/\{[\s\S]*?\}/g)];
-  // 从后往前尝试（最后一个最可能是真正的 JSON 输出）
+  // 策略 2：从后往前找含目标字段的 JSON（处理模型先输出思考过程的情况）
+  const allMatches = [...t.matchAll(/\{/g)];
   for (let i = allMatches.length - 1; i >= 0; i--) {
-    let j = allMatches[i][0];
-    // 修复被截断的 JSON：补全缺失的右括号
-    const opens = (j.match(/\{/g) || []).length;
-    const closes = (j.match(/\}/g) || []).length;
-    if (opens > closes) j += "}".repeat(opens - closes);
+    const start = allMatches[i].index;
+    const candidate = t.slice(start);
+    // 先试原始文本
     try {
-      const parsed = JSON.parse(j);
-      // 必须包含目标字段之一，避免误匹配到其他 JSON 片段
-      if (parsed.chinese || parsed.expected_german || parsed.score != null || parsed.comment) {
-        return parsed;
-      }
+      const parsed = JSON.parse(candidate);
+      if (parsed.chinese || parsed.expected_german || parsed.score != null || parsed.comment) return parsed;
+    } catch (e) {}
+    // 再试修复后的文本
+    try {
+      const repaired = repairTruncatedJson(candidate);
+      const parsed = JSON.parse(repaired);
+      if (parsed.chinese || parsed.expected_german || parsed.score != null || parsed.comment) return parsed;
     } catch (e) {}
   }
 
-  // 策略 3：贪婪匹配最外层花括号（兜底）
-  const m = t.match(/\{[\s\S]*\}/);
+  // 策略 3：贪婪匹配最外层花括号 + 修复
+  const m = t.match(/\{[\s\S]*/);
   if (m) {
-    let j = m[0];
-    const opens = (j.match(/\{/g) || []).length;
-    const closes = (j.match(/\}/g) || []).length;
-    if (opens > closes) j += "}".repeat(opens - closes);
-    try { return JSON.parse(j); } catch (e) {}
+    try {
+      const repaired = repairTruncatedJson(m[0]);
+      return JSON.parse(repaired);
+    } catch (e) {}
   }
 
-  // 解析失败，抛出带原文上下文的错误
+  // 解析失败
   throw new Error("AI 返回内容解析失败（可能被截断或格式异常），原文前 200 字：" + t.slice(0, 200));
 }
 
