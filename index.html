@@ -1707,18 +1707,38 @@ function extractJson(text) {
   let t = text.trim();
   // 去掉 markdown 代码块包裹（如 ```json ... ``` 或 ``` ... ```）
   t = t.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/, "").trim();
-  // 尝试直接解析
+
+  // 策略 1：直接解析
   try { return JSON.parse(t); } catch (e) {}
-  // 提取第一个完整的 JSON 对象
+
+  // 策略 2：找最后一个完整的 JSON 对象（有些模型先输出思考过程再输出 JSON）
+  const allMatches = [...t.matchAll(/\{[\s\S]*?\}/g)];
+  // 从后往前尝试（最后一个最可能是真正的 JSON 输出）
+  for (let i = allMatches.length - 1; i >= 0; i--) {
+    let j = allMatches[i][0];
+    // 修复被截断的 JSON：补全缺失的右括号
+    const opens = (j.match(/\{/g) || []).length;
+    const closes = (j.match(/\}/g) || []).length;
+    if (opens > closes) j += "}".repeat(opens - closes);
+    try {
+      const parsed = JSON.parse(j);
+      // 必须包含目标字段之一，避免误匹配到其他 JSON 片段
+      if (parsed.chinese || parsed.expected_german || parsed.score != null || parsed.comment) {
+        return parsed;
+      }
+    } catch (e) {}
+  }
+
+  // 策略 3：贪婪匹配最外层花括号（兜底）
   const m = t.match(/\{[\s\S]*\}/);
   if (m) {
     let j = m[0];
-    // 修复被截断的 JSON：补全缺失的右括号
     const opens = (j.match(/\{/g) || []).length;
     const closes = (j.match(/\}/g) || []).length;
     if (opens > closes) j += "}".repeat(opens - closes);
     try { return JSON.parse(j); } catch (e) {}
   }
+
   // 解析失败，抛出带原文上下文的错误
   throw new Error("AI 返回内容解析失败（可能被截断或格式异常），原文前 200 字：" + t.slice(0, 200));
 }
