@@ -1578,7 +1578,7 @@ function getModelConfig() {
 }
 
 /* ---------- DeepSeek API ---------- */
-async function callDeepSeek({ system, user, json = true, temperature }) {
+async function callDeepSeek({ system, user, json = true, temperature, _retry = 0 }) {
   const s = state.settings;
   if (!s.apiKey) throw new Error("未配置 API Key，请在设置中填写。");
   const cfg = getModelConfig();
@@ -1677,7 +1677,17 @@ async function callDeepSeek({ system, user, json = true, temperature }) {
     if (!data.choices || !data.choices.length || !data.choices[0].message) {
       throw new Error("AI 返回格式异常：" + JSON.stringify(data).slice(0, 200));
     }
-    return data.choices[0].message.content;
+    const msg = data.choices[0].message;
+    // 优先取 content；若为空则取 reasoning_content（Kimi/DeepSeek 推理模型可能 content 为 null）
+    const result = msg.content || msg.reasoning_content || "";
+    if (!result.trim()) {
+      // 空响应时自动重试一次（LLM 偶发返回空内容）
+      if (_retry < 1) {
+        return await callDeepSeek({ system, user, json, temperature, _retry: _retry + 1 });
+      }
+      throw new Error("AI 返回为空（重试后仍为空），原始响应：" + JSON.stringify(data).slice(0, 300));
+    }
+    return result;
   } catch (e) {
     if (e.name === "AbortError") throw new Error("请求超时，请重试。");
     // 网络/CORS 错误时给出更清晰的提示
@@ -1693,14 +1703,24 @@ async function callDeepSeek({ system, user, json = true, temperature }) {
   } finally { clearTimeout(timer); }
 }
 function extractJson(text) {
-  if (!text) throw new Error("AI 返回为空");
+  if (!text || !text.trim()) throw new Error("AI 返回为空，请重试一次");
   let t = text.trim();
   // 去掉 markdown 代码块包裹（如 ```json ... ``` 或 ``` ... ```）
   t = t.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/, "").trim();
+  // 尝试直接解析
   try { return JSON.parse(t); } catch (e) {}
+  // 提取第一个完整的 JSON 对象
   const m = t.match(/\{[\s\S]*\}/);
-  if (m) { try { return JSON.parse(m[0]); } catch (e) {} }
-  throw new Error("无法解析 AI 返回的 JSON");
+  if (m) {
+    let j = m[0];
+    // 修复被截断的 JSON：补全缺失的右括号
+    const opens = (j.match(/\{/g) || []).length;
+    const closes = (j.match(/\}/g) || []).length;
+    if (opens > closes) j += "}".repeat(opens - closes);
+    try { return JSON.parse(j); } catch (e) {}
+  }
+  // 解析失败，抛出带原文上下文的错误
+  throw new Error("AI 返回内容解析失败（可能被截断或格式异常），原文前 200 字：" + t.slice(0, 200));
 }
 
 /* ---------- 出题 ---------- */
