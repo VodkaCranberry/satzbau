@@ -900,10 +900,30 @@ select.form-control { appearance: none; background-image: linear-gradient(45deg,
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             导入词表
           </button>
+          <button id="btnPasteWords2" class="btn btn-secondary btn-sm">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+            粘贴词表
+          </button>
           <button id="btnClearWords" class="btn btn-ghost btn-sm hidden">清空</button>
         </div>
+        <div style="margin-top:12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="font-size:13px;font-weight:600;color:var(--ink-secondary)">直接填写词表</span>
+            <span style="font-size:12px;color:var(--ink-faint)">每行一个词或词组，也可用逗号分隔</span>
+            <span style="flex:1"></span>
+            <button id="btnAiExtract" class="btn btn-secondary btn-sm" style="flex:none">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4c0 1.95-1.4 3.58-3.25 3.93"/><path d="M8.24 9.93A4 4 0 0 1 12 2"/><circle cx="12" cy="12" r="3"/><path d="M12 16v6"/><path d="M8 22h8"/></svg>
+              AI 智能提取词组
+            </button>
+          </div>
+          <textarea id="wordDirectInput" class="form-control" rows="3" placeholder="anders als, obwohl, trotzdem&#10;die Wohnung&#10;gemütlich, komfortabel&#10;&#10;支持多词组如 'anders als'、'sowohl ... als auch' 等" style="font-size:13px;min-height:72px;line-height:1.5"></textarea>
+          <div id="aiExtractStatus" style="font-size:12px;color:var(--ink-faint);margin-top:4px;display:none">
+            <span style="display:inline-block;width:12px;height:12px;border:2px solid var(--hairline-strong);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:6px"></span>
+            AI 正在智能识别词组…
+          </div>
+        </div>
         <div id="wordChips" class="word-chips"></div>
-        <p class="file-hint" id="fileHint">支持 .txt / .csv 文件：每行一个词，或用逗号 / 分号 / 制表符分隔。AI 出题时会尽量融入这些词。</p>
+        <p class="file-hint" id="fileHint">支持 .txt / .csv 文件、直接填写或粘贴词表。AI 出题时会尽量融入这些词。</p>
         <input type="file" id="fileInput" accept=".txt,.csv,text/plain" hidden>
       </div>
     </div>
@@ -1074,7 +1094,21 @@ select.form-control { appearance: none; background-image: linear-gradient(45deg,
         <select id="setModel" class="form-control">
           <option value="deepseek-chat">deepseek-chat（通用，推荐）</option>
           <option value="deepseek-reasoner">deepseek-reasoner（深度推理，较慢）</option>
+          <option value="kimi">Kimi（Moonshot）</option>
+          <option value="hunyuan">腾讯混元 Hunyuan</option>
+          <option value="MiMo">小米 MiMo</option>
+          <option value="custom">自定义模型（OpenAI 兼容）</option>
         </select>
+      </div>
+      <div id="customModelFields" class="hidden">
+        <div class="form-group">
+          <label class="form-label" for="setApiBase">API Base URL <span class="hint">不含 /chat/completions 后缀</span></label>
+          <input id="setApiBase" class="form-control" type="text" placeholder="如 https://api.hunyuan.cloud.tencent.com/v1" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="setCustomModel">模型名称</label>
+          <input id="setCustomModel" class="form-control" type="text" placeholder="如 hunyuan-turbos-latest" autocomplete="off">
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label" for="setTemp">出题随机性 <span class="hint">越高题目越多样</span></label>
@@ -1124,31 +1158,9 @@ select.form-control { appearance: none; background-image: linear-gradient(45deg,
       </div>
       <hr class="form-divider">
 
-      <div class="settings-section-title">云同步 (LeanCloud)</div>
-      <div class="form-group">
-        <label class="form-label" for="setSyncServer">服务器地址 <span class="hint">留空则自动用国际版默认域名</span></label>
-        <input id="setSyncServer" class="form-control" type="text" placeholder="https://xxxxxxxx.api.lncldglobal.com/1.1" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="setSyncAppId">App ID</label>
-        <input id="setSyncAppId" class="form-control" type="text" placeholder="LeanCloud「设置 > 应用凭证」中的 App ID" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="setSyncAppKey">App Key</label>
-        <input id="setSyncAppKey" class="form-control" type="password" placeholder="App Key（仅保存在本地，不会上传云端）" autocomplete="off">
-      </div>
-      <div id="syncStatus" style="font-size:12.5px; color:var(--ink-muted); line-height:1.7; margin:8px 0">
-        未配置。到 <a href="https://console.leancloud.app" target="_blank" rel="noopener">console.leancloud.app</a> 注册并创建应用，把「设置 > 应用凭证」里的服务器地址、App ID、App Key 填到这里即可开启网页版与桌面版互通（含换电脑恢复数据）。
-      </div>
-      <div class="btn-row">
-        <button id="btnSyncNow" class="btn btn-secondary btn-sm">立即同步</button>
-        <button id="btnSyncClear" class="btn btn-secondary btn-sm">清除云端配置</button>
-      </div>
-      <hr class="form-divider">
-
       <div class="settings-section-title">关于</div>
       <p style="font-size:12.5px; color:var(--ink-muted); line-height:1.6; margin:0">
-        题目与作答会发送至 DeepSeek API 用于生成与批改。练习记录仅保存在本地（浏览器 localStorage 或桌面版数据文件），不会上传任何服务器。
+        题目与作答会发送至所选 AI 模型的 API 用于生成与批改。练习记录仅保存在本地（浏览器 localStorage 或桌面版数据文件），不会上传任何服务器。
       </p>
       <div class="btn-row" style="margin-top:20px; justify-content:flex-end">
         <button class="btn btn-primary" data-goto="home">完成</button>
@@ -1412,6 +1424,8 @@ function loadSettings() {
     return Object.assign({
       apiKey: "sk-e2e0f8a975ef4af6b9eb27e85323590a",
       model: "deepseek-chat",
+      apiBase: "",
+      customModel: "",
       temperature: 0.8,
       maxTokens: 1600,
       ttsRate: 0.9,
@@ -1420,159 +1434,21 @@ function loadSettings() {
       mode: "standard",
       grammarTopics: [],
       searchDir: "de2zh",
-      sync: {},
     }, s);
-  } catch (e) { return { apiKey: "", model: "deepseek-chat", temperature: 0.8, maxTokens: 1600, ttsRate: 0.9, ttsVoice: "", theme: "light", mode: "standard", grammarTopics: [], sync: {} }; }
+  } catch (e) { return { apiKey: "", model: "deepseek-chat", apiBase: "", customModel: "", temperature: 0.8, maxTokens: 1600, ttsRate: 0.9, ttsVoice: "", theme: "light", mode: "standard", grammarTopics: [] }; }
 }
 function saveSettings() {
   state.settings.grammarTopics = state.selectedTopics.slice();
   try { localStorage.setItem(LS_KEY.settings, JSON.stringify(state.settings)); } catch (e) {}
 }
 function loadHistory() { try { return JSON.parse(localStorage.getItem(LS_KEY.history)) || []; } catch (e) { return []; } }
-function saveHistory() { try { localStorage.setItem(LS_KEY.history, JSON.stringify(state.history)); } catch (e) {} syncMarkDirty(); }
+function saveHistory() { try { localStorage.setItem(LS_KEY.history, JSON.stringify(state.history)); } catch (e) {} }
 function loadWords() { try { return JSON.parse(localStorage.getItem(LS_KEY.words)) || []; } catch (e) { return []; } }
-function saveWords() { try { localStorage.setItem(LS_KEY.words, JSON.stringify(state.words)); } catch (e) {} syncMarkDirty(); }
+function saveWords() { try { localStorage.setItem(LS_KEY.words, JSON.stringify(state.words)); } catch (e) {} }
 function loadVocab() { try { return JSON.parse(localStorage.getItem(LS_KEY.vocab)) || []; } catch (e) { return []; } }
-function saveVocab() { try { localStorage.setItem(LS_KEY.vocab, JSON.stringify(state.vocab)); } catch (e) {} syncMarkDirty(); }
+function saveVocab() { try { localStorage.setItem(LS_KEY.vocab, JSON.stringify(state.vocab)); } catch (e) {} }
 function loadSentences() { try { return JSON.parse(localStorage.getItem(LS_KEY.sentences)) || []; } catch (e) { return []; } }
-function saveSentences() { try { localStorage.setItem(LS_KEY.sentences, JSON.stringify(state.sentences)); } catch (e) {} syncMarkDirty(); }
-
-/* ---------- 云同步 (LeanCloud REST) ---------- */
-const SYNC_META_KEY = "satzbau_sync_meta";
-let syncing = false;          // 应用云端数据时抑制 dirty 标记，防止回环
-let syncPushTimer = null;
-let syncState = loadSyncMeta();
-function loadSyncMeta() {
-  try { return Object.assign({ lastTs: 0, dirty: false }, JSON.parse(localStorage.getItem(SYNC_META_KEY)) || {}); } catch (e) { return { lastTs: 0, dirty: false }; }
-}
-function saveSyncMeta() { try { localStorage.setItem(SYNC_META_KEY, JSON.stringify(syncState)); } catch (e) {} }
-function syncCfg() { return state.settings.sync || {}; }
-function syncBase() {
-  const c = syncCfg();
-  if (c.serverUrl && /^https?:/i.test(c.serverUrl)) return c.serverUrl.replace(/\/+$/, "");
-  if (c.appId) return "https://" + c.appId.slice(0, 8) + ".api.lncldglobal.com/1.1";
-  return null;
-}
-function syncReady() { const c = syncCfg(); return !!(c.appId && c.appKey && syncBase()); }
-async function syncFetch(path, opts) {
-  const c = syncCfg(), base = syncBase();
-  if (!base) throw new Error("云同步未配置");
-  const headers = Object.assign({ "Content-Type": "application/json", "X-LC-Id": c.appId, "X-LC-Key": c.appKey }, (opts && opts.headers) || {});
-  const res = await fetch(base + path, Object.assign({}, opts, { headers }));
-  if (!res.ok) {
-    let msg = "HTTP " + res.status;
-    try { const j = await res.json(); if (j && j.error) msg = j.error; } catch (e) {}
-    if (res.status === 401) msg = "App ID / App Key 无效（401）";
-    if (res.status === 403) msg = "无权访问（403），请检查 App Key 是否为应用凭证中的 App Key";
-    throw new Error("云同步失败：" + msg);
-  }
-  return res.json();
-}
-function syncSnapshot() {
-  return { v: 2, ts: Date.now(), data: JSON.stringify({ history: state.history, vocab: state.vocab, sentences: state.sentences, words: state.words, level: state.level }) };
-}
-function syncApplyRemote(snap) {
-  let d = snap.data;
-  if (typeof d === "string") { try { d = JSON.parse(d); } catch (e) { throw new Error("云端数据损坏"); } }
-  syncing = true;
-  try {
-    if (Array.isArray(d.history)) { state.history = d.history.slice(0, 500); saveHistory(); }
-    if (Array.isArray(d.vocab)) { state.vocab = d.vocab.slice(0, 500); saveVocab(); }
-    if (Array.isArray(d.sentences)) { state.sentences = d.sentences.slice(0, 500); saveSentences(); }
-    if (Array.isArray(d.words)) { state.words = d.words.slice(0, 200); saveWords(); }
-    if (d.level) state.level = d.level;
-  } finally { syncing = false; }
-  renderVocab(); renderSentences(); renderHistory(); renderWordChips(); renderHome();
-}
-// 冲突合并：历史按 id 去重、生词/收藏按词条去重（保留较新），词表取并集
-function syncMerge(localSnap, remoteSnap) {
-  let L = localSnap.data, R = remoteSnap.data;
-  if (typeof L === "string") L = JSON.parse(L);
-  if (typeof R === "string") R = JSON.parse(R);
-  const hm = new Map();
-  [...(L.history || []), ...(R.history || [])].forEach(h => {
-    if (!h) return;
-    const k = h.id || ("t" + h.ts);
-    const ex = hm.get(k);
-    if (!ex) { hm.set(k, h); return; }
-    if ((h.ts || 0) > (ex.ts || 0)) { hm.set(k, Object.assign({}, h, { bookmarked: !!(ex.bookmarked || h.bookmarked) })); }
-    else if (h.bookmarked && !ex.bookmarked) hm.set(k, Object.assign({}, ex, { bookmarked: true }));
-  });
-  const vm = new Map();
-  [...(L.vocab || []), ...(R.vocab || [])].forEach(v => { if (!v) return; const k = v.id || v.g; const ex = vm.get(k); if (!ex || (v.ts || 0) > (ex.ts || 0)) vm.set(k, v); });
-  const sm = new Map();
-  [...(L.sentences || []), ...(R.sentences || [])].forEach(s => { if (!s) return; const k = s.id || s.de; const ex = sm.get(k); if (!ex || (s.ts || 0) > (ex.ts || 0)) sm.set(k, s); });
-  const wl = new Set([...(L.words || []), ...(R.words || [])]);
-  return { v: 2, ts: Date.now(), data: JSON.stringify({
-    history: [...hm.values()].sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 500),
-    vocab: [...vm.values()].sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 500),
-    sentences: [...sm.values()].sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 500),
-    words: [...wl].slice(0, 200),
-    level: R.level || L.level,
-  }) };
-}
-async function syncPush(snap) {
-  const q = "/classes/SatzbauSnapshot?where=" + encodeURIComponent(JSON.stringify({ key: "main" })) + "&limit=1";
-  const rec = await syncFetch(q);
-  const body = { key: "main", ts: snap.ts, data: snap.data };
-  if (rec.results && rec.results.length > 0) {
-    await syncFetch("/classes/SatzbauSnapshot/" + rec.results[0].objectId, { method: "PUT", body: JSON.stringify(body) });
-  } else {
-    await syncFetch("/classes/SatzbauSnapshot", { method: "POST", body: JSON.stringify(body) });
-  }
-}
-async function syncPull() {
-  const q = "/classes/SatzbauSnapshot?where=" + encodeURIComponent(JSON.stringify({ key: "main" })) + "&limit=1";
-  const rec = await syncFetch(q);
-  if (!rec.results || rec.results.length === 0) return null;
-  const r = rec.results[0];
-  return { ts: r.ts, data: r.data };
-}
-function setSyncStatus(t) { const el = $("#syncStatus"); if (el) el.textContent = t; }
-async function syncNow({ silent } = {}) {
-  if (!syncReady()) { if (!silent) toast("请先在设置中填写云同步信息", "error"); return false; }
-  setSyncStatus("正在同步…");
-  try {
-    const remote = await syncPull();
-    const localSnap = syncSnapshot();
-    const localTs = syncState.lastTs;
-    let action = "idle";
-    if (!remote) {
-      await syncPush(localSnap);
-      syncState.lastTs = localSnap.ts; syncState.dirty = false; saveSyncMeta();
-      action = "pushed";
-    } else if (!syncState.dirty && remote.ts <= localTs) {
-      action = "up-to-date";
-    } else if (!syncState.dirty && remote.ts > localTs) {
-      syncApplyRemote(remote); syncState.lastTs = remote.ts; saveSyncMeta();
-      action = "pulled";
-    } else if (syncState.dirty && remote.ts <= localTs) {
-      await syncPush(localSnap);
-      syncState.lastTs = localSnap.ts; syncState.dirty = false; saveSyncMeta();
-      action = "pushed";
-    } else {
-      const merged = syncMerge(localSnap, remote);
-      await syncPush(merged);
-      syncApplyRemote(merged); syncState.lastTs = merged.ts; syncState.dirty = false; saveSyncMeta();
-      action = "merged";
-    }
-    const msg = { idle: "已是最新", pushed: "已上传到云端", pulled: "已从云端恢复", merged: "已合并两端改动", "up-to-date": "已是最新" }[action] || "完成";
-    setSyncStatus(msg + " · " + fmtDate(Date.now()));
-    if (!silent) toast("云同步：" + msg, "success");
-    return true;
-  } catch (e) {
-    setSyncStatus("同步失败：" + (e.message || e));
-    if (!silent) toast(e.message || "云同步失败", "error", 5000);
-    return false;
-  }
-}
-function syncMarkDirty() {
-  if (syncing) return;
-  syncState.dirty = true;
-  saveSyncMeta();
-  if (syncPushTimer) clearTimeout(syncPushTimer);
-  syncPushTimer = setTimeout(() => { if (syncReady()) syncNow({ silent: true }); }, 3000);
-}
+function saveSentences() { try { localStorage.setItem(LS_KEY.sentences, JSON.stringify(state.sentences)); } catch (e) {} }
 
 /* ---------- 主题 ---------- */
 function applyTheme() {
@@ -1674,15 +1550,44 @@ function populateVoices() {
 }
 if ("speechSynthesis" in window) { window.speechSynthesis.onvoiceschanged = populateVoices; }
 
+/* ---------- 模型配置 ---------- */
+const MODEL_PRESETS = {
+  "deepseek-chat":     { base: "https://api.deepseek.com", name: "deepseek-chat" },
+  "deepseek-reasoner": { base: "https://api.deepseek.com", name: "deepseek-reasoner" },
+  "kimi":              { base: "https://api.moonshot.cn/v1", name: "moonshot-v1-32k" },
+  "hunyuan":           { base: "https://api.hunyuan.cloud.tencent.com/v1", name: "" },
+  "MiMo":              { base: "", name: "" },
+  "custom":            { base: "", name: "" },
+};
+function getModelConfig() {
+  const s = state.settings;
+  const key = s.model || "deepseek-chat";
+  const preset = MODEL_PRESETS[key];
+  if (key === "deepseek-chat" || key === "deepseek-reasoner") {
+    return { base: preset.base, name: preset.name };
+  }
+  let base = (key === "hunyuan" || key === "kimi")
+    ? (s.apiBase || preset.base)
+    : (s.apiBase || "");
+  // 清理：去尾部斜杠、去掉 /chat/completions 后缀
+  base = base.replace(/\/+$/, "").replace(/\/chat\/completions$/i, "");
+  // 确保以 /v1 结尾（OpenAI 兼容格式要求）
+  if (base && !base.endsWith("/v1")) base = base + "/v1";
+  const name = s.customModel || (key === "hunyuan" ? "hunyuan-turbos-latest" : key === "kimi" ? "moonshot-v1-32k" : key);
+  return { base, name };
+}
+
 /* ---------- DeepSeek API ---------- */
 async function callDeepSeek({ system, user, json = true, temperature }) {
   const s = state.settings;
   if (!s.apiKey) throw new Error("未配置 API Key，请在设置中填写。");
+  const cfg = getModelConfig();
   // 桌面版：请求经主进程后端转发（IPC）；浏览器版回退到直接 fetch
   if (window.__satzbau && window.__satzbau.ai) {
     const r = await window.__satzbau.ai.call({
       apiKey: s.apiKey,
-      model: s.model || "deepseek-chat",
+      model: cfg.name || "deepseek-chat",
+      apiBase: cfg.base || undefined,
       temperature: temperature != null ? temperature : (s.temperature != null ? s.temperature : 0.8),
       maxTokens: s.maxTokens || 1600,
       json: !!json,
@@ -1692,41 +1597,106 @@ async function callDeepSeek({ system, user, json = true, temperature }) {
     if (!r || !r.ok) throw new Error((r && r.error) || "AI 请求失败，请稍后再试。");
     return r.content;
   }
+  const base = cfg.base || "https://api.deepseek.com";
+  const endpoint = base + "/chat/completions";
+  const isDeepSeek = (s.model === "deepseek-chat" || s.model === "deepseek-reasoner");
+  const isFileProtocol = (location.protocol === "file:");
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 120000);
   try {
-    const res = await fetch("https://api.deepseek.com/chat/completions", {
+    const isKimi = (s.model === "kimi");
+    const body = {
+      model: cfg.name || "deepseek-chat",
+      max_tokens: s.maxTokens || 1600,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user }
+      ]
+    };
+    // Kimi 部分模型仅允许 temperature=1，不发送该参数由 API 使用默认值
+    if (!isKimi) {
+      body.temperature = temperature != null ? temperature : (s.temperature != null ? s.temperature : 0.8);
+    }
+    // 仅 DeepSeek 支持 response_format，其他模型不发送此参数
+    if (json && isDeepSeek) body.response_format = { type: "json_object" };
+    const fetchOpts = {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + s.apiKey },
-      body: JSON.stringify({
-        model: s.model || "deepseek-chat",
-        temperature: temperature != null ? temperature : (s.temperature != null ? s.temperature : 0.8),
-        max_tokens: s.maxTokens || 1600,
-        response_format: json ? { type: "json_object" } : undefined,
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user }
-        ]
-      }),
+      body: JSON.stringify(body),
       signal: controller.signal,
-    });
+    };
+
+    // 策略：先直连，失败再尝试 CORS 代理
+    let res;
+    let usedProxy = false;
+    try {
+      res = await fetch(endpoint, fetchOpts);
+    } catch (directErr) {
+      // 直连失败（通常是 CORS），尝试代理
+      if (isFileProtocol) {
+        usedProxy = true;
+        const proxies = [
+          url => "https://api.allorigins.win/raw?url=" + encodeURIComponent(url),
+          url => "https://corsproxy.io/?" + encodeURIComponent(url),
+        ];
+        let lastErr = directErr;
+        for (const mkProxy of proxies) {
+          try {
+            res = await fetch(mkProxy(endpoint), fetchOpts);
+            if (res.ok) break;
+            lastErr = new Error("代理返回 HTTP " + res.status);
+          } catch (e) {
+            lastErr = e;
+          }
+        }
+        if (!res || !res.ok) {
+          throw new Error(
+            "跨域请求被拦截：该 API 不允许本地文件直接调用。\n\n" +
+            "解决方法（任选其一）：\n" +
+            "① 用本地服务器打开网页（推荐）：终端运行 python3 -m http.server 8080，然后访问 http://localhost:8080\n" +
+            "② 切换回 DeepSeek 模型（已支持直连）\n" +
+            "③ 使用桌面版客户端"
+          );
+        }
+      } else {
+        throw directErr;
+      }
+    }
+
     if (!res.ok) {
       let msg = "HTTP " + res.status;
-      try { const j = await res.json(); msg = (j.error && j.error.message) || msg; } catch (e) {}
-      if (res.status === 401) throw new Error("API Key 无效或已过期（401）。请在设置中检查。");
+      const from = usedProxy ? "（通过代理）" : "（直连）";
+      try { const j = await res.json(); msg = (j.error && j.error.message) || (j.message) || msg; } catch (e) { try { msg = await res.text() || msg; } catch (e2) {} }
+      if (res.status === 401) throw new Error("API Key 无效或已过期（401）" + from + "。请在设置中检查 Key 是否正确。");
+      if (res.status === 403) throw new Error("请求被拒绝（403）" + from + "。可能原因：① API Key 未激活或无权限 ② 代理被拒。详细：" + msg.slice(0, 150));
       if (res.status === 429) throw new Error("请求过于频繁，请稍后再试（429）。");
-      throw new Error(msg);
+      throw new Error("请求失败" + from + "：" + msg.slice(0, 200));
     }
     const data = await res.json();
+    if (!data.choices || !data.choices.length || !data.choices[0].message) {
+      throw new Error("AI 返回格式异常：" + JSON.stringify(data).slice(0, 200));
+    }
     return data.choices[0].message.content;
   } catch (e) {
     if (e.name === "AbortError") throw new Error("请求超时，请重试。");
+    // 网络/CORS 错误时给出更清晰的提示
+    if (e instanceof TypeError && e.message.includes("Failed to fetch")) {
+      throw new Error(
+        "网络请求失败，可能是跨域限制。\n\n" +
+        "如果双击打开 HTML 文件，请改用本地服务器：\n" +
+        "终端进入网页所在目录，运行 python3 -m http.server 8080\n" +
+        "然后浏览器访问 http://localhost:8080/index.html"
+      );
+    }
     throw e;
   } finally { clearTimeout(timer); }
 }
 function extractJson(text) {
   if (!text) throw new Error("AI 返回为空");
   let t = text.trim();
+  // 去掉 markdown 代码块包裹（如 ```json ... ``` 或 ``` ... ```）
+  t = t.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/, "").trim();
   try { return JSON.parse(t); } catch (e) {}
   const m = t.match(/\{[\s\S]*\}/);
   if (m) { try { return JSON.parse(m[0]); } catch (e) {} }
@@ -2904,12 +2874,54 @@ function renderWordChips() {
   $("#btnClearWords").classList.toggle("hidden", total === 0);
 }
 function setWords(words) { state.words = words.slice(0, 200); saveWords(); renderWordChips(); }
+
+/* AI 智能提取词组：发送原始文本给 AI，让它识别完整的词组 */
+async function extractWordsByAI(rawText) {
+  if (!rawText.trim()) { toast("请先在文本框中输入词表内容", "error"); return; }
+  const statusEl = $("#aiExtractStatus");
+  const btn = $("#btnAiExtract");
+  statusEl.style.display = "block";
+  btn.disabled = true;
+  try {
+    const text = await callDeepSeek({
+      system: "你是一位德语语言专家，负责从文本中提取德语词汇和词组。",
+      user: `请从以下文本中提取所有德语词汇和词组。
+要求：
+1. 多词固定搭配/短语必须作为整体提取，例如 "anders als"、"sowohl ... als auch"、"es gibt"、"um ... zu"、"im Gegensatz zu" 等
+2. 带冠词的名词保留冠词，如 "die Wohnung"
+3. 去除中文释义、序号、标点等非德语内容
+4. 如果一行中有多个词用逗号/分号分隔，分别提取
+5. 去重
+
+文本：
+${rawText}
+
+严格返回 JSON（不要额外文字）：
+{"words": ["词组1", "词组2", ...]}`,
+      json: true,
+      temperature: 0.1
+    });
+    const data = extractJson(text);
+    const words = Array.isArray(data.words) ? data.words.filter(w => w && w.trim()).map(w => w.trim()) : [];
+    if (!words.length) { toast("AI 未能提取到有效词汇", "error"); return; }
+    setWords(words);
+    if (state.mode !== "file") switchMode("file");
+    toast(`AI 智能提取了 ${words.length} 个词/词组`, "success");
+  } catch (e) {
+    toast(e.message || "AI 提取失败", "error", 5000);
+  } finally {
+    statusEl.style.display = "none";
+    btn.disabled = false;
+  }
+}
+
 function handleFile(file) {
   const reader = new FileReader();
   reader.onload = (e) => {
     const words = parseWords(String(e.target.result));
     if (!words.length) { toast("未从文件中解析到有效单词", "error"); return; }
     setWords(words);
+    $("#wordDirectInput").value = "";
     if (state.mode !== "file") switchMode("file");
     toast(`成功导入 ${words.length} 个词`, "success");
   };
@@ -2926,28 +2938,23 @@ function switchMode(mode) {
 /* ---------- 设置 ---------- */
 function renderSettingsForm() {
   $("#setApiKey").value = state.settings.apiKey || "";
-  $("#setModel").value = state.settings.model || "deepseek-chat";
+  const modelVal = state.settings.model || "deepseek-chat";
+  $("#setModel").value = MODEL_PRESETS[modelVal] ? modelVal : "custom";
+  const needCustom = (modelVal === "kimi" || modelVal === "hunyuan" || modelVal === "MiMo" || modelVal === "custom");
+  $("#customModelFields").classList.toggle("hidden", !needCustom);
+  // 为已知预设显示默认值（让用户看到并可修改）
+  const preset = MODEL_PRESETS[modelVal];
+  const defaultBase = (preset && preset.base) ? preset.base : "";
+  const defaultName = (preset && preset.name) ? preset.name : (modelVal === "hunyuan" ? "hunyuan-turbos-latest" : modelVal === "kimi" ? "moonshot-v1-32k" : "");
+  $("#setApiBase").value = state.settings.apiBase || defaultBase;
+  $("#setCustomModel").value = state.settings.customModel || defaultName;
   $("#setTemp").value = state.settings.temperature;
   $("#tempVal").textContent = state.settings.temperature;
   $("#setMaxTok").value = state.settings.maxTokens;
   $("#setRate").value = state.settings.ttsRate;
   $("#rateVal").textContent = state.settings.ttsRate;
-  const sc = state.settings.sync || {};
-  $("#setSyncServer").value = sc.serverUrl || "";
-  $("#setSyncAppId").value = sc.appId || "";
-  $("#setSyncAppKey").value = sc.appKey || "";
-  updateSyncStatus();
   setTimeout(populateVoices, 50);
   renderStorageInfo();
-}
-/* 云同步状态显示：已配置则显示上次同步，未配置则提示 */
-function updateSyncStatus() {
-  const el = $("#syncStatus"); if (!el) return;
-  if (!syncReady()) { el.textContent = "未配置。到 console.leancloud.app 注册并创建应用，把「设置 > 应用凭证」里的信息填到这里即可开启网页版与桌面版互通（含换电脑恢复数据）。"; return; }
-  const t = syncState.lastTs;
-  el.innerHTML = syncState.dirty
-    ? `已配置 ✓ · 有本地改动待同步${t ? "（上次同步 " + fmtDate(t) + "）" : ""}`
-    : `已配置 ✓ · ${t ? "上次同步 " + fmtDate(t) : "尚未同步过，点「立即同步」上传本机数据"}`;
 }
 
 /* 数据存储信息（桌面版：显示后端文件路径与备份数量；网页版：提示 localStorage） */
@@ -3056,7 +3063,7 @@ function init() {
   $$("#levelTabs .seg").forEach(b => b.onclick = () => {
     state.level = b.dataset.level;
     $$("#levelTabs .seg").forEach(x => x.classList.toggle("active", x === b));
-    saveSettings(); syncMarkDirty();
+    saveSettings();
   });
 
   // 模式（恢复上次选择并绑定切换）
@@ -3066,8 +3073,9 @@ function init() {
   // 词表
   $("#btnUploadFile").onclick = () => $("#fileInput").click();
   $("#fileInput").onchange = (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); e.target.value = ""; };
-  $("#btnClearWords").onclick = () => confirmDialog("清空词表", "确定清空当前导入的全部词表吗？", "清空").then(ok => { if (ok) { setWords([]); toast("词表已清空", "info"); } });
+  $("#btnClearWords").onclick = () => confirmDialog("清空词表", "确定清空当前导入的全部词表吗？", "清空").then(ok => { if (ok) { setWords([]); $("#wordDirectInput").value = ""; toast("词表已清空", "info"); } });
   $("#btnPasteWords").onclick = () => { $("#pasteArea").value = ""; $("#pasteChips").innerHTML = ""; $("#pasteCount").textContent = "已解析 0 个词"; openModal("pasteModal"); };
+  $("#btnPasteWords2").onclick = () => { $("#pasteArea").value = ""; $("#pasteChips").innerHTML = ""; $("#pasteCount").textContent = "已解析 0 个词"; openModal("pasteModal"); };
   $("#pasteArea").oninput = () => {
     const words = parseWords($("#pasteArea").value);
     $("#pasteCount").textContent = "已解析 " + words.length + " 个词";
@@ -3077,10 +3085,13 @@ function init() {
     const words = parseWords($("#pasteArea").value);
     if (!words.length) { toast("没有解析到有效单词", "error"); return; }
     setWords(words);
+    $("#wordDirectInput").value = "";
     closeModal("pasteModal");
     switchMode("file");
     toast(`已载入 ${words.length} 个词`, "success");
   };
+  // AI 智能提取词组
+  $("#btnAiExtract").onclick = () => extractWordsByAI($("#wordDirectInput").value);
 
   // 出题要点面板
   renderGrammarPanel();
@@ -3243,28 +3254,37 @@ function init() {
   $("#btnOpenSettings").onclick = () => { renderSettingsForm(); showView("settings"); };
   $("#setApiKey").onchange = (e) => { state.settings.apiKey = e.target.value.trim(); saveSettings(); };
   $("#btnToggleKey").onclick = () => { const inp = $("#setApiKey"); inp.type = inp.type === "password" ? "text" : "password"; $("#btnToggleKey").textContent = inp.type === "password" ? "显示" : "隐藏"; };
-  $("#setModel").onchange = (e) => { state.settings.model = e.target.value; saveSettings(); };
+  $("#setModel").onchange = (e) => {
+    state.settings.model = e.target.value;
+    const key = e.target.value;
+    const needCustom = (key === "kimi" || key === "hunyuan" || key === "MiMo" || key === "custom");
+    $("#customModelFields").classList.toggle("hidden", !needCustom);
+    // file:// 协议下选择非 DeepSeek 模型时提示
+    if (location.protocol === "file:" && key !== "deepseek-chat" && key !== "deepseek-reasoner") {
+      toast("提示：本地文件使用非 DeepSeek 模型可能遇到跨域问题。建议双击 start-server.command 启动本地服务器，或直接在终端运行 python3 -m http.server 8080", "info", 8000);
+    }
+    // 设置默认值
+    if (key === "kimi") {
+      if (!state.settings.apiBase) { state.settings.apiBase = "https://api.moonshot.cn/v1"; $("#setApiBase").value = state.settings.apiBase; }
+      if (!state.settings.customModel) { state.settings.customModel = "moonshot-v1-32k"; $("#setCustomModel").value = state.settings.customModel; }
+    } else if (key === "hunyuan") {
+      if (!state.settings.apiBase) { state.settings.apiBase = "https://api.hunyuan.cloud.tencent.com/v1"; $("#setApiBase").value = state.settings.apiBase; }
+      if (!state.settings.customModel) { state.settings.customModel = "hunyuan-turbos-latest"; $("#setCustomModel").value = state.settings.customModel; }
+    } else if (key === "MiMo") {
+      if (!state.settings.apiBase) { state.settings.apiBase = ""; $("#setApiBase").value = ""; }
+      if (!state.settings.customModel) { state.settings.customModel = ""; $("#setCustomModel").value = ""; }
+    } else if (key === "custom") {
+      // 自定义：不自动填值
+    }
+    saveSettings();
+  };
+  $("#setApiBase").oninput = (e) => { state.settings.apiBase = e.target.value.trim(); saveSettings(); };
+  $("#setCustomModel").oninput = (e) => { state.settings.customModel = e.target.value.trim(); saveSettings(); };
   $("#setTemp").oninput = (e) => { state.settings.temperature = parseFloat(e.target.value); $("#tempVal").textContent = state.settings.temperature; saveSettings(); };
   $("#setMaxTok").onchange = (e) => { state.settings.maxTokens = clamp(parseInt(e.target.value) || 1600, 256, 8000); saveSettings(); };
   $("#setRate").oninput = (e) => { state.settings.ttsRate = parseFloat(e.target.value); $("#rateVal").textContent = state.settings.ttsRate; saveSettings(); };
   $("#setVoice").onchange = (e) => { state.settings.ttsVoice = e.target.value; saveSettings(); };
   $("#btnTestTts").onclick = () => speak("Guten Tag! Wie geht es dir?", "de-DE");
-
-  // 云同步
-  const setSyncField = (key) => (e) => {
-    state.settings.sync = state.settings.sync || {};
-    state.settings.sync[key] = e.target.value.trim();
-    saveSettings(); updateSyncStatus();
-  };
-  $("#setSyncServer").oninput = setSyncField("serverUrl");
-  $("#setSyncAppId").oninput = setSyncField("appId");
-  $("#setSyncAppKey").oninput = setSyncField("appKey");
-  $("#btnSyncNow").onclick = () => syncNow();
-  $("#btnSyncClear").onclick = () => {
-    state.settings.sync = {}; saveSettings();
-    $("#setSyncServer").value = ""; $("#setSyncAppId").value = ""; $("#setSyncAppKey").value = "";
-    updateSyncStatus(); toast("已清除云同步配置", "info");
-  };
 
   // 数据管理
   $("#btnDataExport").onclick = exportJson;
@@ -3276,7 +3296,6 @@ function init() {
       try {
         localStorage.removeItem(LS_KEY.history); localStorage.removeItem(LS_KEY.words); localStorage.removeItem(LS_KEY.settings);
         localStorage.removeItem(LS_KEY.vocab); localStorage.removeItem(LS_KEY.sentences);
-        localStorage.removeItem(SYNC_META_KEY);
       } catch (e) {}
       location.reload();
     }
@@ -3288,9 +3307,6 @@ function init() {
 
   renderWordChips();
   renderHome();
-
-  // 已配置云同步则启动时静默拉取一次
-  if (syncReady()) setTimeout(() => syncNow({ silent: true }), 1500);
 }
 
 document.addEventListener("DOMContentLoaded", init);
